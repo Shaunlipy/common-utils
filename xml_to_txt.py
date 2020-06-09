@@ -9,15 +9,27 @@ import xml.etree.ElementTree as ET
 def check_same_file(imgs, xmls):
     _xmls = list(map(lambda x: x.replace('.xml', '.jpg'), xmls))
     _file_1 = set(_xmls) - set(imgs)
+    print('Len img: {}, len xmls: {}'.format(len(imgs), len(xmls)))
     print('In xml not in imgs: ', _file_1)
     _file_2 = set(imgs) - set(_xmls)
     print('In imgs not in xmls: ', _file_2)
 
-def visualize(xml, xmin, ymin, xmax, ymax):
+def visualize(xml):
+    anno = ET.parse(xml)
+    objs = anno.findall('object')
     img = cv2.imread(xml.replace('.xml', '.jpg'))
-    cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (255, 0, 0), 6)
-    plt.imshow(img)
-    plt.show()
+    for obj in objs:
+        cat_name = obj.find('name').text.strip()
+        bndbox_anno = obj.find('bndbox')
+        xmin = int(bndbox_anno.find('xmin').text)
+        ymin = int(bndbox_anno.find('ymin').text)
+        xmax = int(bndbox_anno.find('xmax').text)
+        ymax = int(bndbox_anno.find('ymax').text)
+        cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (255, 0, 0), 6)
+        cv2.putText(img, cat_name, (xmin, ymin), color=(255, 255, 255), fontFace=cv2.FONT_HERSHEY_COMPLEX_SMALL, fontScale=1)
+    cv2.imshow(xml, img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 def crop(xml, xmin, ymin, xmax, ymax):
     img = cv2.imread(xml.replace('.xml', '.jpg'))
@@ -32,7 +44,6 @@ def process(xml):
     width = int(anno.find('size').find('width').text)
     height = int(anno.find('size').find('height').text)
     bbox = ''
-    # 28039541-10-09-1979-23-11-2019-f
     obj = anno.findall('object')
     assert len(obj) == 1
     cat_name = obj[0].find('name').text.strip()
@@ -68,15 +79,17 @@ def process_old(xml):
     crop(xml, xmin, ymin, xmax, ymax)
 
 if __name__ == '__main__':
-    new_parent = 'test_1_f'
-    root = '/Volumes/INTEL/Tooth_xray/wetransfer-orig-F-1'
-    parent_dir = Path(root).name
-    imgs = glob.glob(os.path.join(root, '*.jpg'))
-    xmls = glob.glob(os.path.join(root, '*.xml'))
-    print(xmls[0])
-    # check_same_file(imgs, xmls)
-    # SILVANEIDE DE SOUZA ROMÃO.xml missing
+    save_dir = '/Volumes/CT500/Researches/Tooth_xray/yolov3'
+    cur_dir = '/Volumes/CT500/Researches/Tooth_xray/yolov3/9-5-2020(Correct)'
+    imgs = glob.glob(os.path.join(cur_dir, '*.jpg'))
+    xmls = glob.glob(os.path.join(cur_dir, '*.xml'))
+
+    # Check if each has corresponding file
+    check_same_file(imgs, xmls)
+
+    # Visualize
+    visualize(xmls[10])
     # for i, xml in enumerate(xmls):
     #     process((xml, i))
-    for xml in xmls:
-        process_old(xml)
+    # for xml in xmls:
+    #     process_old(xml)
